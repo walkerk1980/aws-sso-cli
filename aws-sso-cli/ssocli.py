@@ -5,6 +5,7 @@ import json
 import argparse
 import getpass
 import os
+import logging
 import requests
 import boto3
 from awssaml import awssaml
@@ -18,7 +19,8 @@ from awsexceptions import GetSAMLAssertionError
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--appinstanceid', nargs='?', const='NO', help='Application instance id. Every AWS account or custom SAML application has a specific id in AWS SSO')
 parser.add_argument('-r', '--rolename', nargs='?', const='NO', help='Role name. Actually it is the name of a profile but for practical terms it is the role you will assume')
-parser.add_argument('-v', '--verbose', nargs='?', const='NO', help='Verbose mode. For even more information or debugging uncomment the variables\' values throughout the script')
+parser.add_argument('-v', '--verbose', nargs='?', const='NO', help='Verbose mode.')
+parser.add_argument('-D', '--debug', nargs='?', const='NO', help='Debug log mode. Warning ssocli.log may contain credentials.')
 parser.add_argument('-u', '--directoryurl', nargs='?', const='NO', default='d-example.awsapps.com', help='The URL of your SSO Directory')
 parser.add_argument('-d', '--dirname', nargs='?', const='NO', default='d-example', help='The Name of your SSO Directory')
 parser.add_argument('-n', '--netbios', nargs='?', const='NO', default='d-example', help='The NETBIOS Name of your SSO Directory')
@@ -34,8 +36,11 @@ print('NETBIOS Name: ' + args.netbios)
 print('SSO Region: ' + args.ssoregion)
 print('STS Region: ' + args.stsregion + '\n\r')
 
+if args.debug:
+    logging.basicConfig(filename='ssocli.log',level=logging.DEBUG)
+
 def get_authentication_code():
-    if args.verbose:
+    if args.verbose or args.debug:
         print('\n\rStep 1: Get Authentication Code using the AD user credentials')
         print('-------')
         print('   - Getting Authentication Code from ' + args.directoryurl + '...\n\r')
@@ -49,7 +54,7 @@ def get_authentication_code():
         raise
 
 def get_access_token(authcode_values):
-    if args.verbose:
+    if args.verbose or args.debug:
         print('\n\rStep 2: Get Access Token using the Authentication Code')
         print('-------')
         print('   - Exchanging Authentication code for Access Token...\n\r')
@@ -64,7 +69,7 @@ def get_access_token(authcode_values):
         raise
 
 def list_application_instances(token_response):
-    if args.verbose:
+    if args.verbose or args.debug:
         print('Step 3: Use the Access Token to get the list of applications configured in AWS SSO')
         print('-------')
 
@@ -74,14 +79,14 @@ def list_application_instances(token_response):
         print('Id: ' + instance['id'],)
         print('Name: ' + instance['name'])
         print('Description: ' + instance['description'] + '\n\r')
-    if args.verbose:
+    if args.verbose or args.debug:
         print('\n\rTo get a list of the roles that you can assume in each AWS account,')
         print('copy the application instance id of the AWS account and pass it as argument. For example:\n\r')
         print('\n\r./ssocli.py -i ins-1becf2edf4961234')
         print('\n\rRun ./ssocli.py -h for more information about how to use this module\n\r')
 
 def list_roles(token_response):
-    if args.verbose:
+    if args.verbose or args.debug:
         print('Step 3: Use the Access Token to get the list of profiles (roles) assigned to the AWS account')
         print('-------')
 
@@ -90,7 +95,7 @@ def list_roles(token_response):
     for role in roles['result']:
         print('Name: ' + role['name'] + '\n\r')
 
-    if args.verbose:
+    if args.verbose or args.debug:
         print('\n\rTo assume any of the roles listed above, pass it\'s Name as argument')
         print('along with the application instance id of the AWS account. For example:\n\r')
         print('./ssocli.py -id ins-1becf2edf4961234 -r ViewOnlyAcces\n\r')
@@ -98,14 +103,14 @@ def list_roles(token_response):
     exit(0)
 
 def get_saml_assertion(token_response):
-    if args.verbose:
+    if args.verbose or args.debug:
         print('\n\rStep 3: Get SAML assertion for the application by using the Access Token')
         print('--------')
         print('   - Getting the SAML endpoint for the application instance ' + args.appinstanceid + '...\n\r')
 
     encoded_saml = sso.get_saml_assertion(args.appinstanceid, args.rolename, token_response['cookies'])
 
-    if args.verbose:
+    if args.verbose or args.debug:
         print('\n\rStep 4: Get AWS Credentials using the SAML assertion\n\r')
         print('--------')
         print('\n\r   - Calling parsesaml.py to extract the role and saml provider from response.saml and pass them to AssumeRoleWithSAML\n\r')
@@ -126,7 +131,7 @@ if __name__ == '__main__':
         except Exception as e:
             print(e)
             exit(1)
-    sso = awssso(args.netbios, args.dirname, args.directoryurl, args.ssoregion, args.login, args.password, args.verbose)
+    sso = awssso(args.netbios, args.dirname, args.directoryurl, args.ssoregion, args.login, args.password, args.verbose, args.debug)
     authcode_res = get_authentication_code()
     token_res = get_access_token(authcode_res)
     # If an Access Token is successfully obtained then it will be used to

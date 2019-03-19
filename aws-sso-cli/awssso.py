@@ -16,7 +16,7 @@ class awssso:
     CFDISTURL = 'https://d32i4gd7pg4909.cloudfront.net/d4a64633fc550d3b73b374cc1fa5e8229d4ca51e/WarpDriveLogin/'
     FIXEDSTRING = '3848C107E2AD28077897B8F9CEA6E94D'
 
-    def __init__(self, netbios, dirname, directoryurl, ssoregion, login, password, verbose=None):
+    def __init__(self, netbios, dirname, directoryurl, ssoregion, login, password, verbose=None, debug=None):
         self.headers = {}
         self.headers['Content-Type'] = 'text/x-gwt-rpc; charset=utf-8'
         self.headers['X-GWT-Permutation'] = awssso.GWTPERMUTATION
@@ -29,6 +29,7 @@ class awssso:
         self.assertion = ''
         self.password = password
         self.verbose = verbose
+        self.debug = debug
         self.data = '7|0|11|' + awssso.CFDISTURL + '|' + awssso.FIXEDSTRING + '|com.amazonaws.warpdrive.console.client.GalaxyInternalGWTService|authenticateUser|com.amazonaws.warpdrive.console.shared.LoginRequest_v4/3859384737||' + awssso.CLIENT_ID + '|' + self.netbios + '|' + self.dirname + '|' + self.password + '|' + self.login + '|1|2|3|4|1|5|5|6|6|7|8|0|9|10|6|11|'
         self.authcode_url = 'https://' + self.directoryurl + '/login/WarpDriveLogin/GalaxyInternalService'
 
@@ -82,7 +83,7 @@ class awssso:
             if not 'x-amz-sso_authn' in TOKEN_response.request._cookies.keys():
                 raise AccessTokenError('Error retreiving Access Token..')
             TOKEN = TOKEN_response.request._cookies['x-amz-sso_authn']
-            if self.verbose:
+            if self.verbose or self.debug:
                 print('\n\rTOKEN: ' + TOKEN + '\n\r')
             access_token_values = {}
             access_token_values['token'] = TOKEN
@@ -111,7 +112,7 @@ class awssso:
 
     # If both the application instance id and the role name are passed as argument then get the SAML assertion and call STS AssumeRoleWithSAML
     def get_saml_assertion(self, app_instance_id, role_name, cookies):
-        if self.verbose:
+        if self.verbose or self.debug:
             print('\n\rStep 3: Get SAML assertion for the application by using the Access Token')
             print('--------')
             print('   - Getting the SAML endpoint for the application instance ' + app_instance_id + '...\n\r')
@@ -128,7 +129,7 @@ class awssso:
         for endpoint in SAMLENDPOINTS:
             if endpoint['name'] == role_name:
                 SAMLENDPOINT = endpoint['url']
-        if self.verbose:
+        if self.verbose or self.debug:
             print('\n\r   - Getting SAML assertion from portal.sso.' + self.sso_region + '.amazonaws.com using the Access Token...')
             print('\n\rSAMLENDPOINT: ' + SAMLENDPOINT + '\n\r')
 
@@ -137,6 +138,6 @@ class awssso:
             cookies=cookies,
         )
         encoded_saml = json.loads(saml_response.text)['encodedResponse']
-        if self.verbose:
+        if self.verbose or self.debug:
             print(encoded_saml)
         return encoded_saml

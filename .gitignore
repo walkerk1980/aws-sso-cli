@@ -1,6 +1,7 @@
 *~
 *#
 *.swp
+*.log
 
 __pycache__/
 *.py[cod]
