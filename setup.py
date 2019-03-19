@@ -1,4 +1,30 @@
+#!/usr/bin/env python3
+
+import codecs
+from os import path
+from platform import system
+
 from setuptools import setup
+
+tests_require = [
+    'pytest-runner',
+    'pytest',
+    'mock',
+    'coverage < 4'
+]
+
+install_requires = [
+    'lxml',
+    'click',
+    'boto3>=1.9.6',
+    'requests[security]',
+    'configparser'
+]
+
+if system() == 'Windows':
+    install_requires.append('requests-negotiate-sspi>=0.3.4')
+
+version = '0.1'
 
 setup(name='aws-sso-cli',
       version='0.1',
@@ -10,3 +36,5 @@ setup(name='aws-sso-cli',
       packages=['aws-sso-cli'],
       zip_safe=False)
 
+if __name__ == '__main__':
+    setup()
