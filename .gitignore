@@ -11,6 +11,7 @@ __pycache__/
 /.coverage.*
 /.cache
 /.pytest_cache
+/.vscode
 
 /doc/_apidoc/
 /build
