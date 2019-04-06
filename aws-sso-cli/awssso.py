@@ -6,7 +6,7 @@ import requests
 import boto3
 from awsexceptions import AuthCodeError
 from awsexceptions import AccessTokenError
-from awsexceptions import GetSAMLAssertionError
+from awsexceptions import SAMLAssertionError
 
 class awssso:
     # CONSTANTS
@@ -95,20 +95,30 @@ class awssso:
             raise
 
     def list_application_instances(self, token, cookies):
-        application_instances_response = requests.get(
-            'https://portal.sso.' + self.sso_region + '.amazonaws.com/instance/appinstances',
-            cookies=cookies,
-        )
-        instances = json.loads(application_instances_response.text)
-        return instances
+        try:
+            application_instances_response = requests.get(
+                'https://portal.sso.' + self.sso_region + '.amazonaws.com/instance/appinstances',
+                cookies=cookies,
+            )
+            instances = json.loads(application_instances_response.text)
+            return instances
+        except Exception as e:
+            print(e)
+            instances = None
+            return instances
 
     def list_roles_for_appinstanceid(self, application_instance_id, cookies):
-        roles_response = application_instances_response = requests.get(
-            'https://portal.sso.' + self.sso_region + '.amazonaws.com/instance/appinstance/' + application_instance_id + '/profiles',
-            cookies=cookies,
-        )
-        roles = json.loads(roles_response.text)
-        return roles
+        try:
+            roles_response = application_instances_response = requests.get(
+                'https://portal.sso.' + self.sso_region + '.amazonaws.com/instance/appinstance/' + application_instance_id + '/profiles',
+                cookies=cookies,
+            )
+            roles = json.loads(roles_response.text)
+            return roles
+        except Exception as e:
+            print(e)
+            roles = None
+            return roles
 
     # If both the application instance id and the role name are passed as argument then get the SAML assertion and call STS AssumeRoleWithSAML
     def get_saml_assertion(self, app_instance_id, role_name, cookies):
@@ -124,7 +134,7 @@ class awssso:
             cookies=cookies,
         )
         if 'result' not in json.loads(SAMLENDPOINT_response.text).keys():
-            raise GetSAMLAssertionError(SAMLENDPOINT_response.text)
+            raise SAMLAssertionError(SAMLENDPOINT_response.text)
         SAMLENDPOINTS = json.loads(SAMLENDPOINT_response.text)['result']
         for endpoint in SAMLENDPOINTS:
             if endpoint['name'] == role_name:

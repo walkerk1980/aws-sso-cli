@@ -10,7 +10,11 @@ class AccessTokenError(Error):
     def __init__(self, message):
         self.message = message
 
-class GetSAMLAssertionError(Error):
+class SAMLAssertionError(Error):
+    def __init__(self, message):
+        self.message = message
+
+class ApplicationInstancesError(Error):
     def __init__(self, message):
         self.message = message
 

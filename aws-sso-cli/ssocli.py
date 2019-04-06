@@ -12,7 +12,7 @@ from awssaml import awssaml
 from awssso import awssso
 from awsexceptions import AuthCodeError
 from awsexceptions import AccessTokenError
-from awsexceptions import GetSAMLAssertionError
+from awsexceptions import SAMLAssertionError
 
 #TODO 
 # switch from argparse to Click and prompt for required values
@@ -30,14 +30,14 @@ parser.add_argument('-S', '--ssoregion', nargs='?', const='NO', default='us-east
 parser.add_argument('-p', '--password', nargs='?', const='NO', help='The Active Directory Password to Login to SSO Directory with User specified by -l')
 args = parser.parse_args()
 
+if args.debug:
+    logging.basicConfig(format = '%(asctime)s %(name)s %(levelname)s %(message)s', filename = 'ssocli.log', filemode='w', level = logging.DEBUG)
+
 print('\n\rDirectory URL: ' + args.directoryurl)
 print('Directory Name: ' + args.dirname)
 print('NETBIOS Name: ' + args.netbios)
 print('SSO Region: ' + args.ssoregion)
 print('STS Region: ' + args.stsregion + '\n\r')
-
-if args.debug:
-    logging.basicConfig(filename='ssocli.log',level=logging.DEBUG)
 
 def get_authentication_code():
     if args.verbose or args.debug:
@@ -127,25 +127,32 @@ def get_saml_assertion(token_response):
 if __name__ == '__main__':
     if not args.password:
         try:
+            logging.debug('Asking for password')
             args.password = getpass.getpass('Please type password for user ' + args.login + ': ')
         except Exception as e:
             print(e)
             exit(1)
+    logging.debug('Creating awssso object')
     sso = awssso(args.netbios, args.dirname, args.directoryurl, args.ssoregion, args.login, args.password, args.verbose, args.debug)
+    logging.debug('Calling get_authentication_code')
     authcode_res = get_authentication_code()
+    logging.debug('Calling get_access_token')
     token_res = get_access_token(authcode_res)
     # If an Access Token is successfully obtained then it will be used to
     # list the applications configured in AWS SSO for this user.
     # If appinstanceid and rolename args are not passed then it will show the list of sso applications
     # The the user copy the application instance id and pass it as an argument to this module.
     if not args.appinstanceid and not args.rolename:
+        logging.debug('Calling list_application_instances')
         list_application_instances(token_res)
     # If only the application instance id is passed as argument then
     # list the roles associated to the application instance (aws account).
     elif args.appinstanceid and not args.rolename:
+        logging.debug('Calling list_roles')
         list_roles(token_res)
     # If both the application instance id and the role name are passed as arguments
     # then get the SAML assertion and call STS AssumeRoleWithSAML
     elif args.appinstanceid and args.rolename:
+        logging.debug('Calling get_saml_assertion')
         get_saml_assertion(token_res)
 
